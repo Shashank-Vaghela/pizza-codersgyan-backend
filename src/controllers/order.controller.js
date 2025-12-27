@@ -78,3 +78,17 @@ exports.getOrderStats = asyncHandler(async (req, res) => {
   
   return res.success(200, result.data, "Order stats fetched successfully");
 });
+
+exports.cancelOrder = asyncHandler(async (req, res) => {
+  const result = await orderService.cancelOrder(
+    req.params.id, 
+    req.user._id,
+    req.user.role
+  );
+  
+  if (!result.success) {
+    return res.error(result.statusCode, result.message);
+  }
+  
+  return res.success(200, result.data, result.message || "Order cancelled successfully");
+});

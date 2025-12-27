@@ -200,6 +200,10 @@ exports.updateOrderStatus = serviceHandler(async (orderId, data) => {
     return { success: false, statusCode: 404, message: "Order not found" };
   }
 
+  // Emit socket event for real-time update
+  const { emitOrderUpdate } = require("../utils/socket");
+  emitOrderUpdate(orderId, order);
+
   return { success: true, statusCode: 200, data: order };
 });
 
@@ -222,7 +226,67 @@ exports.updatePaymentStatus = serviceHandler(async (orderId, data) => {
     return { success: false, statusCode: 404, message: "Order not found" };
   }
 
+  // Emit socket event for real-time update
+  const { emitOrderUpdate } = require("../utils/socket");
+  emitOrderUpdate(orderId, order);
+
   return { success: true, statusCode: 200, data: order };
+});
+
+// Cancel order
+exports.cancelOrder = serviceHandler(async (orderId, userId, userRole) => {
+  const order = await Order.findById(orderId);
+
+  if (!order) {
+    return { success: false, statusCode: 404, message: "Order not found" };
+  }
+
+  // Check if user owns the order (for customers)
+  if (userRole === "customer" && order.user.toString() !== userId.toString()) {
+    return { success: false, statusCode: 403, message: "Not authorized to cancel this order" };
+  }
+
+  // Check if order can be cancelled
+  if (order.status === "Delivered") {
+    return { success: false, statusCode: 400, message: "Cannot cancel delivered order" };
+  }
+
+  if (order.status === "Out for delivery") {
+    return { success: false, statusCode: 400, message: "Cannot cancel order that is out for delivery. Please contact support." };
+  }
+
+  // Update order status to cancelled (we'll add this status to the model)
+  const updatedOrder = await Order.findByIdAndUpdate(
+    orderId,
+    { 
+      status: "Cancelled",
+      cancelledAt: new Date(),
+      cancelledBy: userId
+    },
+    { new: true, runValidators: false }
+  ).populate("items.product");
+  // Process refund if order was paid via card
+  if (updatedOrder.paymentStatus === "PAID" && updatedOrder.paymentMode === "card") {
+    try {
+      const paymentService = require("./payment.service");
+      const refundResult = await paymentService.createRefund(orderId);
+      
+      if (refundResult.success) {
+        console.log("Refund processed successfully:", refundResult.data);
+      } else {
+        console.error("Refund failed:", refundResult.message);
+        // Don't fail the cancellation if refund fails, log it for manual processing
+      }
+    } catch (refundError) {
+      console.error("Refund error:", refundError);
+      // Continue with cancellation even if refund fails
+    }
+  }
+  // Emit socket event for real-time update
+  const { emitOrderUpdate } = require("../utils/socket");
+  emitOrderUpdate(orderId, updatedOrder);
+
+  return { success: true, statusCode: 200, data: updatedOrder, message: "Order cancelled successfully" };
 });
 
 // Get order stats

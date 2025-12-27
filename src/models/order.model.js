@@ -69,7 +69,7 @@ const orderSchema = new mongoose.Schema(
     paymentStatus: {
       type: String,
       required: true,
-      enum: ["PENDING", "PAID", "FAILED"],
+      enum: ["PENDING", "PAID", "FAILED", "REFUNDED"],
       default: "PENDING",
     },
     stripeSessionId: {
@@ -109,8 +109,36 @@ const orderSchema = new mongoose.Schema(
     status: {
       type: String,
       required: true,
-      enum: ["Received", "Confirmed", "Prepared", "Out for delivery", "Delivered"],
+      enum: ["Received", "Confirmed", "Prepared", "Out for delivery", "Delivered", "Cancelled"],
       default: "Received",
+    },
+    cancelledAt: {
+      type: Date,
+      default: null,
+    },
+    cancelledBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      default: null,
+    },
+    refund: {
+      stripeRefundId: {
+        type: String,
+        default: null,
+      },
+      amount: {
+        type: Number,
+        default: 0,
+      },
+      status: {
+        type: String,
+        enum: ["NONE", "PENDING", "COMPLETED", "FAILED"],
+        default: "NONE",
+      },
+      refundedAt: {
+        type: Date,
+        default: null,
+      },
     },
   },
   {

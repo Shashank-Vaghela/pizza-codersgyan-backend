@@ -8,6 +8,7 @@ const {
   updatePaymentStatus,
   getOrderStats,
   getSalesData,
+  cancelOrder,
 } = require("../controllers/order.controller");
 const { verifyJWT, checkRole } = require("../middlewares/auth.middleware");
 
@@ -28,6 +29,9 @@ orderRoutes.get("/", checkRole(["admin"]), getAllOrders);
 orderRoutes.put("/:id/status", checkRole(["admin"]), updateOrderStatus);
 
 orderRoutes.put("/:id/payment-status", checkRole(["admin"]), updatePaymentStatus);
+
+// Cancel order - both customer and admin can cancel
+orderRoutes.put("/:id/cancel", verifyJWT, cancelOrder);
 
 // Generic routes - parameterized paths last
 orderRoutes.get("/:id", verifyJWT, getOrderById);
