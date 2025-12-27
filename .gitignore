@@ -1,0 +1,57 @@
+node_modules/
+.env
+
+# Ignore local development environment files
+.dockerignore
+.env
+
+# Ignore Docker image and container files
+.dockerignore
+.dockerignore/
+.dockerignore/**
+*.tar
+*.tar.gz
+*.tar.bz2
+*.tar.xz
+*.tar.lz4
+*.tar.sz
+*.tar.zst
+
+# Ignore Docker-related temporary files
+.dockerenv
+.dockerinit
+.dockerignore
+
+# Ignore Docker Compose files
+docker-compose.yml
+docker-compose.override.yml
+docker-compose.yml.backup
+docker-compose.yml~
+docker-compose.override.yml~
+**/*.retry
+
+# Ignore Dockerfile cache
+Dockerfile*
+!Dockerfile.prod # Keep production Dockerfile
+!Dockerfile.dev # Keep development Dockerfile
+
+# Ignore Docker secrets
+*.key
+*.pem
+
+# Ignore Docker credentials
+*.creds
+
+# Ignore Docker logs
+*.log
+
+# Ignore any generated files or directories
+.idea/
+.vscode/
+
+# Ignore system files
+.DS_Store
+Thumbs.db
+ehthumbs.db
+
+d8teme-express-ec2.pem
