@@ -15,6 +15,10 @@ const appConfig = {
   stripe: {
     secretKey: process.env.STRIPE_SECRET_KEY,
   },
+  email: {
+    user: process.env.EMAIL_USER,
+    password: process.env.EMAIL_PASSWORD,
+  },
 };
 
 module.exports = appConfig;

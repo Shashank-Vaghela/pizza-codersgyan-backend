@@ -1,6 +1,8 @@
 const User = require("../models/user.model");
 const { serviceHandler } = require("../utils/asyncHandler");
 const { generateToken } = require("../utils/jwt");
+const { sendPasswordResetEmail } = require("../utils/email");
+const crypto = require("crypto");
 const {
   registerUserSchema,
   loginUserSchema,
@@ -133,4 +135,102 @@ exports.updateUserProfile = serviceHandler(async (userId, data) => {
   delete userData.password;
 
   return { success: true, statusCode: 200, data: userData };
+});
+
+// Request password reset
+exports.requestPasswordReset = serviceHandler(async (email) => {
+  if (!email) {
+    return { success: false, statusCode: 400, message: "Email is required" };
+  }
+
+  const user = await User.findOne({ email: email.toLowerCase() });
+  if (!user) {
+    // Don't reveal that user doesn't exist for security
+    return { 
+      success: true, 
+      statusCode: 200, 
+      message: "If the email exists, a password reset link has been sent" 
+    };
+  }
+
+  // Generate reset token
+  const resetToken = crypto.randomBytes(32).toString("hex");
+  const hashedToken = crypto
+    .createHash("sha256")
+    .update(resetToken)
+    .digest("hex");
+
+  // Save hashed token and expiry (1 hour)
+  user.resetPasswordToken = hashedToken;
+  user.resetPasswordExpires = Date.now() + 3600000; // 1 hour
+  await user.save();
+
+  // Send email
+  const emailResult = await sendPasswordResetEmail(
+    user.email,
+    resetToken,
+    user.firstName
+  );
+
+  if (!emailResult.success) {
+    return {
+      success: false,
+      statusCode: 500,
+      message: "Failed to send reset email. Please try again later.",
+    };
+  }
+
+  return {
+    success: true,
+    statusCode: 200,
+    message: "Password reset email sent successfully",
+  };
+});
+
+// Reset password with token
+exports.resetPassword = serviceHandler(async (token, newPassword) => {
+  if (!token || !newPassword) {
+    return {
+      success: false,
+      statusCode: 400,
+      message: "Token and new password are required",
+    };
+  }
+
+  if (newPassword.length < 6) {
+    return {
+      success: false,
+      statusCode: 400,
+      message: "Password must be at least 6 characters long",
+    };
+  }
+
+  // Hash the token to compare with stored hash
+  const hashedToken = crypto.createHash("sha256").update(token).digest("hex");
+
+  // Find user with valid token
+  const user = await User.findOne({
+    resetPasswordToken: hashedToken,
+    resetPasswordExpires: { $gt: Date.now() },
+  });
+
+  if (!user) {
+    return {
+      success: false,
+      statusCode: 400,
+      message: "Invalid or expired reset token",
+    };
+  }
+
+  // Update password
+  user.password = newPassword;
+  user.resetPasswordToken = null;
+  user.resetPasswordExpires = null;
+  await user.save();
+
+  return {
+    success: true,
+    statusCode: 200,
+    message: "Password reset successfully",
+  };
 });

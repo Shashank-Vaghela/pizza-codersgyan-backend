@@ -3,6 +3,8 @@ const {
   loginUser,
   getCurrentUser,
   updateUserProfile,
+  requestPasswordReset,
+  resetPassword,
 } = require("../services/users.service");
 const { asyncHandler } = require("../utils/asyncHandler");
 
@@ -40,4 +42,24 @@ exports.updateUserProfile = asyncHandler(async (req, res) => {
     return res.error(response.statusCode, response.message);
   }
   return res.success(200, response.data, "Profile updated successfully");
+});
+
+// Request password reset
+exports.requestPasswordReset = asyncHandler(async (req, res) => {
+  const { email } = req.body;
+  const response = await requestPasswordReset(email);
+  if (!response.success) {
+    return res.error(response.statusCode, response.message);
+  }
+  return res.success(200, null, response.message);
+});
+
+// Reset password
+exports.resetPassword = asyncHandler(async (req, res) => {
+  const { token, newPassword } = req.body;
+  const response = await resetPassword(token, newPassword);
+  if (!response.success) {
+    return res.error(response.statusCode, response.message);
+  }
+  return res.success(200, null, response.message);
 });
